@@ -4,6 +4,8 @@ from bs4 import BeautifulSoup, Tag
 
 from typing import TypedDict
 
+import requests
+
 
 class PageData(TypedDict):
     url: str
@@ -66,3 +68,51 @@ def extract_page_data(html: str, base_url: str) -> PageData:
         outgoing_links=get_urls_from_html(html, base_url),
         image_urls=get_images_from_html(html, base_url)
     )
+
+def get_html(url):
+    response = requests.get(url, headers={"User-Agent": "BootCrawler/1.0"})
+ 
+    if response.status_code >= 400:
+        raise Exception(
+            f"Error fetching {url}: status code {response.status_code}"
+        )
+ 
+    content_type = response.headers.get("content-type", "")
+    if "text/html" not in content_type:
+        raise Exception(
+            f"Error fetching {url}: content type is not text/html, got {content_type}"
+        )
+
+    return response.text
+    
+
+def crawl_page(base_url, current_url=None, page_data=None):
+    if current_url is None:
+        current_url = base_url
+    if page_data is None:
+        page_data = {}
+ 
+    base_domain = urlparse(base_url).netloc
+    current_domain = urlparse(current_url).netloc
+    if base_domain != current_domain:
+        return page_data
+ 
+    normalized_current_url = normalize_url(current_url)
+    if normalized_current_url in page_data:
+        return page_data
+ 
+    print(f"crawling: {current_url}")
+ 
+    try:
+        html = get_html(current_url)
+    except Exception as e:
+        print(f"error fetching {current_url}: {e}")
+        return page_data
+ 
+    page_data[normalized_current_url] = extract_page_data(html, current_url)
+ 
+    next_urls = get_urls_from_html(html, base_url)
+    for next_url in next_urls:
+        crawl_page(base_url, next_url, page_data)
+ 
+    return page_data
