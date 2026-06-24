@@ -1,38 +1,36 @@
 import asyncio
 import sys
-from crawl import get_html, crawl_page, crawl_site_async
 
-def main():
+from crawl import crawl_site_async
+from json_report import write_json_report
+
+
+async def main_async():
     args = sys.argv[1:]
 
     if len(args) < 1:
         print("no website provided")
         sys.exit(1)
 
-    if len(args) > 1:
+    if len(args) > 3:
         print("too many arguments provided")
         sys.exit(1)
 
     base_url = args[0]
-    print(f"starting crawl: {base_url}")
+    max_concurrency = int(args[1]) if len(args) >= 2 else 5
+    max_pages = int(args[2]) if len(args) >= 3 else 50
 
-    '''
-    html = get_html(base_url)
-    print(html)
-    '''
+    print(f"starting crawl of: {base_url}")
 
-    '''
-    page_data = crawl_page(base_url)
-    '''
+    page_data = await crawl_site_async(
+        base_url, max_concurrency=max_concurrency, max_pages=max_pages
+    )
 
-    page_data = await crawl_site_async(base_url, max_concurrency=5)
-    
     print(f"\nfound {len(page_data)} pages")
-    for url, data in page_data.items():
-        print(f"\n--- {url} ---")
-        for key, value in data.items():
-            print(f"  {key}: {value}")
+
+    write_json_report(page_data)
+    print("wrote report.json")
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main_async())
