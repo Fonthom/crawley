@@ -1,6 +1,6 @@
+import asyncio
 import sys
-from crawl import get_html
-from crawl import crawl_page
+from crawl import get_html, crawl_page, crawl_site_async
 
 def main():
     args = sys.argv[1:]
@@ -16,11 +16,17 @@ def main():
     base_url = args[0]
     print(f"starting crawl: {base_url}")
 
+    '''
     html = get_html(base_url)
     print(html)
+    '''
 
+    '''
     page_data = crawl_page(base_url)
- 
+    '''
+
+    page_data = await crawl_site_async(base_url, max_concurrency=5)
+    
     print(f"\nfound {len(page_data)} pages")
     for url, data in page_data.items():
         print(f"\n--- {url} ---")
